@@ -5,5 +5,24 @@ provider:
   runtime: nodejs8.10
 
 functions:
-  hello:
-    handler: autogenerate-alarm.hello
+  autogenerate-api-alarms:
+    handler: autogenerate-alarm.handler
+    events:
+      - cloudwatchEvent:
+          event:
+            source:
+              - aws.lambda
+            detail-type:
+              - AWS API Call via CloudTrail
+            detail:
+              eventSource:
+                - lambda.amazonaws.com
+              eventName:
+                - CreateFunction
+    environment:
+      alarm_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
+      ok_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
+    iamRoleStatements:
+      - Effect: Allow
+        Action: cloudwatch:PutMetricAlarm
+        Resource: "*"
