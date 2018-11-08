@@ -1,8 +1,13 @@
 service: cloudwatch-autogenerate-alarms
 
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-iam-roles-per-function
+
 provider:
   name: aws
   runtime: nodejs8.10
+  stage: ${opt:stage, 'dev'}
 
 functions:
   autogenerate-api-alarms:
@@ -11,18 +16,28 @@ functions:
       - cloudwatchEvent:
           event:
             source:
-              - aws.lambda
+              - aws.apigateway
             detail-type:
               - AWS API Call via CloudTrail
             detail:
               eventSource:
-                - lambda.amazonaws.com
+                - apigateway.amazonaws.com
               eventName:
-                - CreateFunction
+                - CreateDeployment
     environment:
       alarm_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
       ok_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
+    iamRoleStatementsName: cloudwatch-auto-alarm-role
     iamRoleStatements:
+      - Effect: Allow
+        Action: apigateway:GET
+        Resource:
+          - arn:aws:apigateway:#{AWS::Region}::/restapis/*
+          - arn:aws:apigateway:#{AWS::Region}::/restapis/*/stages/${self:provider.stage}
+      - Effect: Allow
+        Action: apigateway:PATCH
+        Resource:
+          - arn:aws:apigateway:#{AWS::Region}::/restapis/*/stages/${self:provider.stage}
       - Effect: Allow
         Action: cloudwatch:PutMetricAlarm
         Resource: "*"
