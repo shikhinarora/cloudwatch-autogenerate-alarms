@@ -1,0 +1,14 @@
+{
+  "name": "cloudwatch-autogenerate-alarms",
+  "version": "1.0.0",
+  "description": "autogenerate alarms in cloudwatch for all lambda apis",
+  "author": "Shikhin Arora",
+  "license": "ISC",
+  "devDependencies": {
+    "aws-sdk": "^2.349.0",
+    "lodash": "^4.17.11"
+  },
+  "dependencies": {
+    "co": "^4.6.0"
+  }
+}
