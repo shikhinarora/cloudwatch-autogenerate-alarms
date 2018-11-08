@@ -3,60 +3,16 @@
 const _          = require('lodash');
 const co         = require('co');
 const AWS        = require('aws-sdk');
-const apigateway = new AWS.APIGateway();
 const cloudwatch = new AWS.CloudWatch();
 
 const alarmActions = (process.env.alarm_actions || '').split(',');
 const okAction     = (process.env.ok_actions || '').split(',');
 
-let enableDetailedMetrics = co.wrap(function* (restApiId, stageName) {
-  let getResp = yield apigateway.getStage({ restApiId, stageName }).promise();
-  console.log('get stage settings' + '-----' + getResp.methodSettings);
-
-  let isDetailedMetricsEnabled = _.get(getResp, 'methodSettings.*/*.metricsEnabled', false);
-  if (isDetailedMetricsEnabled) {
-    console.log('detailed metrics already enabled' + '-----' + { restApiId, stageName });
-  } else {
-    let updateReq = {
-      restApiId,
-      stageName,
-      patchOperations: [
-        {
-          path: "/*/*/metrics/enabled",
-          value: "true",
-          op: "replace"
-        }
-      ]
-    };
-    yield apigateway.updateStage(updateReq).promise();
-    console.log('enabled detailed metrics' + '-----' + { restApiId, stageName });
-  }
-});
-
-let getRestEndpoints = co.wrap(function* (restApiId) {
-  let resp = yield apigateway.getResources({ restApiId }).promise();
-  console.log('got REST resources' + '-----' + { restApiId });
-
-  let resourceMethods = resp.items.map(x => {
-    let methods = _.keys(x.resourceMethods);
-    return methods.map(method => ({ resource: x.path, method }));
-  });
-
-  return _.flattenDeep(resourceMethods);
-});
-
-let getRestApiName = co.wrap(function* (restApiId) {
-  let resp = yield apigateway.getRestApi({ restApiId }).promise();
-  console.log('got REST api' + '-----' + { restApiId });
-
-  return resp.name;
-});
-
-let createAlarmsForEndpoints = co.wrap(function* (functionName) {
-  console.log('`Function name is ${functionName}`' + '-----');
+let createAlarmsForFunction = co.wrap(function* (functionName) {
+  console.log('`Function name is ${functionName}`' + '----');
 
   let putReq = {
-    AlarmName: `Function [${functionName}] : Errors >= 1`,
+    AlarmName: `Function [${functionName}] : Errors >= 1`, //This is linked to deletion of alarm also. Update function name there as well.
     MetricName: 'Errors',
     Dimensions: [
       { Name: 'FunctionName',  Value: functionName },
@@ -76,15 +32,13 @@ let createAlarmsForEndpoints = co.wrap(function* (functionName) {
   };
   yield cloudwatch.putMetricAlarm(putReq).promise();
 
-  console.log('auto-created latency ALARMS for Lambda function' + '-----' + { functionName });
+  console.log('auto-created error ALARMS for Lambda function' + '-----' + { functionName });
 });
 
 module.exports.handler = co.wrap(function* (event, context, cb) {
   let functionName = event.detail.requestParameters.functionName;
 
-  //yield enableDetailedMetrics(restApiId, stageName);
-
-  yield createAlarmsForEndpoints(functionName);
+  yield createAlarmsForFunction(functionName);
 
   cb(null, 'ok');
 });

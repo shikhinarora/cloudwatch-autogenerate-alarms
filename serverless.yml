@@ -33,6 +33,26 @@ functions:
         Action: cloudwatch:PutMetricAlarm
         Resource: "*"
 
+  autodelete-api-alarms:
+    handler: autodelete-alarm.handler
+    events:
+      - cloudwatchEvent:
+          event:
+            source:
+              - aws.lambda
+            detail-type:
+              - AWS API Call via CloudTrail
+            detail:
+              eventSource:
+                - lambda.amazonaws.com
+              eventName:
+                - DeleteFunction20150331
+    iamRoleStatementsName: cloudwatch-auto-alarm-delete-role
+    iamRoleStatements:
+      - Effect: Allow
+        Action: cloudwatch:DeleteAlarms
+        Resource: "*"
+
 resources:
   Resources:
     cloudwatchAlarmNotification:
