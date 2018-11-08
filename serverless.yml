@@ -16,28 +16,28 @@ functions:
       - cloudwatchEvent:
           event:
             source:
-              - aws.apigateway
+              - aws.lambda
             detail-type:
               - AWS API Call via CloudTrail
             detail:
               eventSource:
-                - apigateway.amazonaws.com
+                - lambda.amazonaws.com
               eventName:
-                - CreateDeployment
+                - CreateFunction20150331
     environment:
-      alarm_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
-      ok_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:NotifyMe
+      alarm_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:cloudwatch-alarm-notification
+      ok_actions: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:cloudwatch-alarm-notification
     iamRoleStatementsName: cloudwatch-auto-alarm-role
     iamRoleStatements:
       - Effect: Allow
-        Action: apigateway:GET
-        Resource:
-          - arn:aws:apigateway:#{AWS::Region}::/restapis/*
-          - arn:aws:apigateway:#{AWS::Region}::/restapis/*/stages/${self:provider.stage}
-      - Effect: Allow
-        Action: apigateway:PATCH
-        Resource:
-          - arn:aws:apigateway:#{AWS::Region}::/restapis/*/stages/${self:provider.stage}
-      - Effect: Allow
         Action: cloudwatch:PutMetricAlarm
         Resource: "*"
+
+resources:
+  Resources:
+    cloudwatchAlarmNotification:
+      Type: AWS::SNS::Topic
+      Properties:
+        DisplayName: cloudwatch-alarm-notification
+        TopicName: cloudwatch-alarm-notification
+
